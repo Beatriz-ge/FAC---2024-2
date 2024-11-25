@@ -1,18 +1,29 @@
-	.data
-	.text
+.data
+newline: .string "\n"   # Define a string de quebra de linha, armazenada em 'newline'. A string contém um caractere de nova linha.
+
+.text
 main:
-	li $v0, 5
-	syscall
-	move $s1, $v0
-	
-	li $v0, 5
-	syscall
-	
-	move $s2, $v0
-	
-	add $s0, $s1, $s2
-	
-	li $v0, 1
-	move $a0, $s0
-	syscall
-	
+    # Início do código da seção de texto, com a label "main" indicando o início do programa.
+
+    li a7, 5             # Carrega o valor 5 no registrador 'a7', que é o código da syscall para ler um número inteiro.
+    ecall                # Realiza a syscall, que solicita ao sistema operacional para ler um número inteiro da entrada padrão.
+    mv s1, a0            # Move o número lido (armazenado em 'a0') para o registrador 's1', armazenando o primeiro número.
+
+    li a7, 5             # Carrega novamente o valor 5 em 'a7', para realizar a leitura de outro número inteiro.
+    ecall                # Realiza a syscall para ler o segundo número inteiro da entrada padrão.
+    mv s2, a0            # Move o valor lido (armazenado em 'a0') para o registrador 's2', armazenando o segundo número.
+
+    add s0, s1, s2       # Soma os valores armazenados em 's1' e 's2', e armazena o resultado em 's0' (s0 = s1 + s2).
+
+    li a7, 1             # Carrega o valor 1 em 'a7', que é o código da syscall para imprimir um número inteiro.
+    mv a0, s0            # Move o valor da soma (armazenado em 's0') para o registrador 'a0', para ser impresso.
+    ecall                # Realiza a syscall para imprimir o valor de 'a0', que é a soma dos dois números.
+
+    li a7, 4             # Carrega o valor 4 em 'a7', que é o código da syscall para imprimir uma string.
+    la a0, newline       # Carrega o endereço da string 'newline' no registrador 'a0', que contém a quebra de linha.
+    ecall                # Realiza a syscall para imprimir a string armazenada em 'a0' (quebra de linha).
+
+    li a7, 10            # Carrega o valor 10 em 'a7', que é o código da syscall para terminar o programa.
+    ecall                # Realiza a syscall para encerrar a execução do programa.
+
+

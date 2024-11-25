@@ -1,7 +1,13 @@
-.data
-     str: 	.asciiz "Ola mundo"
-.text
-main:
-	li $v0, 4
-	la $a0, str
-	syscall
+.data                   	# Define uma seção de dados no programa. 
+str:                    	# Declaração de uma seção de dados e a label "str" onde a string será armazenada
+    .string "Ola Mundo\n"  	# Define a string "Ola mundo" terminada com o caractere nulo '\0', que será armazenada na memória.
+
+.text                  		 # Define uma seção de código no programa.
+main:                   	# Início do código da seção de texto, com a label "main" como ponto de entrada.
+    la a0, str           	# load address carrega o endereço. Aqui, o endereço da string "str" é carregado no registrador a0.
+    li a7, 4             	# load immediate carrega o valor imediato. Aqui, o valor 4 é carregado no registrador a7.
+                           	# O valor 4 em a7 corresponde ao código de syscall para "print_string".
+    ecall                	# "ecall" faz a chamada do sistema (syscall). 
+
+    li a7, 10            	# Carrega o valor 10 no registrador a7. 
+    ecall                	# Chama a syscall de exit, que termina a execução do programa.
