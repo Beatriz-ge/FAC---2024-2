@@ -1,0 +1,76 @@
+.data
+mensao_sr: .asciz "SR\n"
+mensao_ii: .asciz "II\n"
+mensao_mi: .asciz "MI\n"
+mensao_mm: .asciz "MM\n"
+mensao_ms: .asciz "MS\n"
+mensao_ss: .asciz "SS\n"
+entrada:   .word 0
+saida:     .space 4
+
+.text
+main:
+    # Leitura da entrada
+    li a7, 5          # Syscall para leitura de um inteiro
+    ecall             # Executa a syscall (entrada armazenada em a0)
+    la t1, entrada    # Carrega o endereço de 'entrada' para t1
+    sw a0, 0(t1)      # Armazena o valor de a0 no endereço 'entrada'
+
+    # Carrega o valor da entrada
+    lw t0, 0(t1)      # Carrega o valor armazenado em 'entrada' para t0
+
+    # Condições para as menções
+
+    # Se a entrada for 0, a menção é "SR"
+    beqz t0, sr       # Se t0 == 0, vai para 'sr' (SR)
+
+    # Se a entrada for de 1 a 29, a menção é "II"
+    li t1, 30         # Nota mínima para MI
+    blt t0, t1, ii    # Se t0 < 30, vai para 'ii' (II)
+
+    # Se a entrada for de 30 a 49, a menção é "MI"
+    li t2, 50         # Nota mínima para MM
+    blt t0, t2, mi    # Se t0 < 50, vai para 'mi' (MI)
+
+    # Se a entrada for de 50 a 69, a menção é "MM"
+    li t3, 70         # Nota mínima para MS
+    blt t0, t3, mm    # Se t0 < 70, vai para 'mm' (MM)
+
+    # Se a entrada for de 70 a 89, a menção é "MS"
+    li t4, 90         # Nota mínima para SS
+    blt t0, t4, ms    # Se t0 < 90, vai para 'ms' (MS)
+
+    # Se a entrada for de 90 a 100, a menção é "SS"
+    j ss              # Se t0 >= 90, vai para 'ss' (SS)
+
+sr:
+    la a0, mensao_sr  # Carrega o endereço de "SR"
+    j print           # Vai para o rótulo 'print'
+
+ii:
+    la a0, mensao_ii  # Carrega o endereço de "II"
+    j print           # Vai para o rótulo 'print'
+
+mi:
+    la a0, mensao_mi  # Carrega o endereço de "MI"
+    j print           # Vai para o rótulo 'print'
+
+mm:
+    la a0, mensao_mm  # Carrega o endereço de "MM"
+    j print           # Vai para o rótulo 'print'
+
+ms:
+    la a0, mensao_ms  # Carrega o endereço de "MS"
+    j print           # Vai para o rótulo 'print'
+
+ss:
+    la a0, mensao_ss  # Carrega o endereço de "SS"
+    j print           # Vai para o rótulo 'print'
+
+print:
+    li a7, 4          # Syscall para imprimir string
+    ecall             # Executa a syscall
+
+    # Finaliza o programa
+    li a7, 10         # Syscall para sair
+    ecall

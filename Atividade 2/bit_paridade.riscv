@@ -1,0 +1,82 @@
+.data
+entrada_incorreta: .asciz "entrada incorreta\n"   # Mensagem exibida quando o valor de entrada é inválido
+bit_paridade_msg:  .asciz "bit-paridade: "        # Mensagem exibida antes do bit de paridade
+saida_msg:         .asciz "\nsaida: "            # Mensagem exibida antes da saída final
+
+.text
+main:
+    # Leitura da entrada
+    li a7, 5               			# Carrega o número 5 em a7 para a syscall de leitura de inteiro
+    ecall                 			# Executa a syscall, o valor lido será armazenado em a0
+    mv t0, a0              			# Copia o valor lido de a0 para t0 (preserva o valor para uso posterior)
+
+    # Verifica se N é maior ou igual a 128
+    li t1, 128             			# Carrega o valor 128 no registrador t1
+    bge t0, t1, entrada_incorreta_label 	# Se t0 (N) >= 128, pula para o rótulo 'entrada_incorreta_label'
+
+    # Preparar o valor 1 no registrador t3 para deslocamentos
+    li t3, 1               			# Carrega o valor 1 no registrador t3 (usado para deslocamentos)
+
+    # Calculando o número de 1s em N (paridade)
+    mv t5, t0              			# Copia o valor de N (t0) para t5, preservando o original
+    li t1, 0               			# Inicializa t1 com 0, que será usado para contar os bits 1
+    
+conta_bits_1:
+    andi t2, t5, 1         			# Verifica o bit menos significativo de t5 (t5 AND 1)
+    add t1, t1, t2         			# Incrementa t1 se o bit menos significativo for 1
+    srl t5, t5, t3         			# Desloca t5 uma posição para a direita, descartando o bit menos significativo
+    bnez t5, conta_bits_1  			# Continua o loop enquanto t5 não for zero (há mais bits para verificar)
+
+    # Verifica se a contagem de 1s é ímpar
+    andi t2, t1, 1         			# Faz AND entre t1 e 1 para verificar se o número de bits 1 é ímpar
+    beq t2, x0, paridade_zero_label 		# Se t2 == 0 (número par), pula para o rótulo 'paridade_zero_label'
+    li t4, 128             			# Caso ímpar, define o bit de paridade como 1 na posição mais significativa
+    j calcula_saida        			# Pula para o rótulo 'calcula_saida'
+
+paridade_zero_label:
+    li t4, 0               			# Caso número de 1s seja par, define o bit de paridade como 0
+
+calcula_saida:
+    # Adiciona o bit de paridade na posição mais significativa de N
+    or t0, t0, t4          			# Faz OR entre N (t0) e o bit de paridade (t4) para combiná-los
+
+    # Exibe o valor do bit de paridade
+    la a0, bit_paridade_msg 			# Carrega o endereço da mensagem 'bit-paridade: '
+    li a7, 4               			# Carrega o número 4 em a7 para a syscall de impressão de string
+    ecall                  			# Executa a syscall para imprimir a mensagem
+    srli t6, t4, 7         			# Desloca o bit mais significativo de t4 para a posição menos significativa
+    mv a0, t6              			# Copia o valor do bit de paridade para a0
+    li a7, 1               			# Carrega o número 1 em a7 para a syscall de impressão de inteiro
+    ecall                  			# Executa a syscall para imprimir o bit de paridade
+
+    # Adiciona uma quebra de linha
+    li a0, 10              			# Carrega o valor ASCII de nova linha (\n)
+    li a7, 11              			# Carrega o número 11 em a7 para a syscall de impressão de caractere
+    ecall                  			# Executa a syscall para imprimir a nova linha
+
+    # Adiciona uma quebra de linha e exibe o valor de saída
+    la a0, saida_msg       			# Carrega o endereço da mensagem 'saida: ' com quebra de linha
+    li a7, 4               			# Carrega o número 4 em a7 para a syscall de impressão de string
+    ecall                  			# Executa a syscall para imprimir a mensagem
+    mv a0, t0              			# Copia o valor final de saída (t0) para a0
+    li a7, 1               			# Carrega o número 1 em a7 para a syscall de impressão de inteiro
+    ecall                  			# Executa a syscall para imprimir o valor final
+
+    # Adiciona outra quebra de linha antes de finalizar
+    li a0, 10              			# Carrega o valor ASCII de nova linha (\n)
+    li a7, 11              			# Carrega o número 11 em a7 para a syscall de impressão de caractere
+    ecall                  			# Executa a syscall para imprimir a nova linha
+
+    j fim_programa         			# Pula para o rótulo 'fim_programa'
+
+entrada_incorreta_label:
+    # Exibe mensagem de entrada incorreta
+    la a0, entrada_incorreta 			# Carrega o endereço da mensagem 'entrada incorreta'
+    li a7, 4               			# Carrega o número 4 em a7 para a syscall de impressão de string
+    ecall                  			# Executa a syscall para imprimir a mensagem
+    j fim_programa         			# Pula para o rótulo 'fim_programa'
+
+fim_programa:
+    # Finaliza o programa
+    li a7, 10              			# Carrega o número 10 em a7 para a syscall de finalização do programa
+    ecall                  			# Executa a syscall para sair do programa
