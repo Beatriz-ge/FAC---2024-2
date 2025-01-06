@@ -1,0 +1,118 @@
+.text
+    .globl main           # Define a etiqueta global main (ponto de entrada do programa)
+
+main:
+    # Ler inteiro 1
+    li a7, 5              # Carrega o valor 5 em a7 (syscall para leitura de um inteiro)
+    ecall                 # Chama a syscall (aqui, o programa aguarda o input do usuário)
+    mv t0, a0             # Move o valor lido (armazenado em a0) para o registrador t0
+    addi t2, t2, 2        # Incrementa o valor de t2 em 2 (pode ser usado para limite, validação ou cálculo posterior)
+
+    # Ler inteiro 2
+    li a7, 5              # Carrega novamente o valor 5 em a7 para outra leitura de inteiro
+    ecall                 # Chama a syscall de leitura novamente
+    mv t1, a0             # Move o valor lido (armazenado em a0) para o registrador t1
+
+    # Validação: se t0 ou t1 for menor que t2, imprime uma mensagem de erro
+    blt t0, t2, print_invalid  # Se t0 for menor que t2, pula para print_invalid
+    blt t1, t2, print_invalid  # Se t1 for menor que t2, pula para print_invalid
+
+    # Verificação se o primeiro número é primo
+    jal ra, is_prime      # Chama a função is_prime (verifica se o número armazenado em t0 é primo)
+
+    # Calcular o MDC (Máximo Divisor Comum) entre t0 e t1
+    jal ra, mdc           # Chama a função mdc (calcula o MDC entre t0 e t1)
+
+    # Verificar se o resultado do MDC é 1 (inverso modular só existe se o MDC for 1)
+    li t6, 1              # Carrega o valor 1 em t6 (usado para comparação)
+    beq t5, t6, inverso_modular  # Se t5 (resultado do MDC) for igual a 1, chama inverso_modular
+    j print_invalid       # Se o MDC não for 1, pula para print_invalid
+
+    j exit                # Se tudo correr bem, pula para a saída do programa
+
+# Função para verificar se um número é primo
+is_prime:
+    mv t2, t0             # Move t0 para t2 (número a ser verificado se é primo)
+    li t3, 2              # Inicializa t3 com 2 (primeiro possível divisor)
+    li t4, 1              # Inicializa t4 como 1 (flag para indicar que o número é primo)
+
+is_prime_loop:
+    mul t5, t3, t3        # Calcula t5 = t3 * t3 (i * i)
+    bgt t5, t2, is_prime_done  # Se i * i > n, termina a verificação
+    rem t5, t2, t3        # Calcula t5 = n % i (resto da divisão de n por i)
+    beqz t5, print_notprime  # Se o resto for 0, o número não é primo, pula para print_notprime
+    addi t3, t3, 1        # Incrementa o valor de t3 (i++)
+    j is_prime_loop       # Repete o loop
+
+is_prime_done:
+    ret                    # Retorna da função is_prime
+
+# Função para calcular o MDC entre dois números
+mdc:
+    mv t2, t0             # Move t0 para t2 (a = primeiro número)
+    mv t3, t1             # Move t1 para t3 (b = segundo número)
+
+mdc_loop:
+    beqz t3, mdc_done     # Se b == 0, termina o cálculo do MDC
+    rem t4, t2, t3        # Calcula t4 = a % b (resto da divisão de a por b)
+    mv t2, t3             # Atribui t3 a t2 (a = b)
+    mv t3, t4             # Atribui t4 a t3 (b = resto)
+    j mdc_loop            # Repete o loop
+
+mdc_done:
+    mv t5, t2             # Armazena o resultado final do MDC em t5
+    ret                    # Retorna da função mdc
+
+# Função para calcular o inverso modular
+inverso_modular:
+    mv t2, t1             # Move t1 para t2 (a = número cuja inversão modular será calculada)
+    mv t3, t0             # Move t0 para t3 (m = módulo)
+    li t4, 1              # Inicializa t4 com 1 (x0 para cálculo do inverso)
+    li t6, 1              # Inicializa t6 com 1 (valor esperado)
+
+inv_mod_loop:
+    beq t3, t4, print_invalid  # Se m == 0, não há inverso válido, pula para print_invalid
+    mul t5, t4, t2        # Calcula t5 = t4 * t2 (x0 * a)
+    rem t5, t5, t3        # Calcula t5 = t5 % m (resto de x0 * a por m)
+    beq t5, t6, inv_mod_print  # Se o resto for igual a 1, imprime o inverso modular
+    addi t4, t4, 1         # Incrementa t4 (x0++)
+    j inv_mod_loop        # Repete o loop
+
+inv_mod_print:
+    la a0, saida          # Carrega o endereço da string "inverso = " em a0
+    li a7, 4              # Carrega o código da syscall 4 (imprimir string)
+    ecall                 # Chama a syscall para imprimir a string
+    mv a0, t4             # Move o valor de t4 (inverso) para a0
+    li a7, 1              # Carrega o código da syscall 1 (imprimir número)
+    ecall                 # Chama a syscall para imprimir o número
+    li a0, 10             # Carrega o valor 10 (caractere de nova linha)
+    li a7, 11             # Carrega o código da syscall 11 (imprimir caractere)
+    ecall                 # Chama a syscall para imprimir a nova linha
+    j exit                # Vai para a saída do programa
+
+# Função para imprimir uma mensagem de erro (entrada inválida)
+print_invalid:
+    li a7, 4              # Carrega o código da syscall 4 (imprimir string)
+    la a0, error_msg      # Carrega o endereço da string "Entradas invalidas\n"
+    ecall                 # Chama a syscall para imprimir a string
+    j exit                # Vai para a saída do programa
+
+# Função para imprimir uma mensagem de número não primo
+print_notprime:
+    li a7, 4              # Carrega o código da syscall 4 (imprimir string)
+    la a0, msg            # Carrega o endereço da string "O modulo nao eh primo\n"
+    ecall                 # Chama a syscall para imprimir a string
+    j exit                # Vai para a saída do programa
+
+# Saída do programa
+exit:
+    li a7, 10             # Carrega o código da syscall 10 (terminar o programa)
+    ecall                 # Chama a syscall para terminar a execução
+
+.data
+error_msg:
+    .string "Entradas invalidas\n"  # Definição da string de erro para entradas inválidas
+msg:
+    .string "O modulo nao eh primo\n"  # Definição da string para quando o módulo não é primo
+saida:
+    .string "inverso =  "  # Definição da string para imprimir o inverso modular
