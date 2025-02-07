@@ -1,0 +1,145 @@
+.data
+    input_key: .space 12          # Reserva 12 bytes para o buffer da chave de entrada
+    input_text: .space 33         # Reserva 33 bytes para o buffer do texto de entrada (32 caracteres + nulo)
+    output_text: .space 33        # Reserva 33 bytes para o buffer de saída
+
+.text
+.globl main
+
+main:
+    # Ler a chave como uma string primeiro
+    li a7, 8                      # Carrega o número de syscall para ler uma string
+    la a0, input_key              # Carrega o endereço do buffer da chave
+    li a1, 12                     # Tamanho máximo para a entrada da chave (12 bytes)
+    ecall                         # Faz a chamada do sistema
+    
+    # Converter a string da chave para inteiro
+    la t0, input_key              # Carrega o endereço da string da chave
+    li s0, 0                      # Inicializa o resultado inteiro como 0
+    li t2, 1                      # Multiplicador de sinal (1 para positivo, -1 para negativo)
+    
+    # Verificar se o número é negativo
+    lb t1, (t0)                   # Carrega o primeiro caractere da entrada da chave
+    li t3, '-'                    # Carrega o valor ASCII de '-'
+    bne t1, t3, convert_loop      # Se não for '-', vai para o loop de conversão
+    li t2, -1                     # Se for '-', define o multiplicador de sinal como -1
+    addi t0, t0, 1                # Move o ponteiro além do caractere '-'
+    
+convert_loop:
+    lb t1, (t0)                   # Carrega o próximo caractere da entrada da chave
+    
+    # Verificar se o caractere é o fim do número (nulo ou nova linha)
+    beqz t1, finish_conversion    # Se for nulo, finaliza a conversão
+    li t3, 10                     # Carrega o valor ASCII de nova linha
+    beq t1, t3, finish_conversion # Se for nova linha, finaliza a conversão
+    
+    # Converter caractere ASCII para inteiro
+    addi t1, t1, -48              # Converte o dígito ASCII para valor numérico
+    
+    # Multiplicar resultado por 10 e adicionar o novo dígito
+    li t3, 10                     # Carrega a constante 10
+    mul s0, s0, t3                # Multiplica o resultado atual por 10
+    add s0, s0, t1                # Adiciona o novo dígito ao resultado
+    
+    addi t0, t0, 1                # Move para o próximo caractere
+    j convert_loop                # Repetir o loop de conversão
+    
+finish_conversion:
+    # Aplicar o multiplicador de sinal
+    mul s0, s0, t2                # Aplica o sinal ao resultado inteiro final
+    
+    # Ler o texto de entrada
+    li a7, 8                      # Carrega o número de syscall para ler uma string
+    la a0, input_text             # Carrega o endereço do buffer de entrada
+    li a1, 33                     # Tamanho máximo (32 + terminador nulo)
+    ecall                         # Faz a chamada do sistema
+    
+    # Inicializar ponteiros para processamento do texto
+    la s1, input_text             # Carrega o ponteiro de origem (texto de entrada)
+    la s2, output_text            # Carrega o ponteiro de destino (texto de saída)
+    
+process_loop:
+    # Carregar o caractere atual do texto de entrada
+    lb t0, (s1)                   # Carrega um byte do texto de entrada
+    
+    # Verificar fim da string (nulo ou nova linha)
+    beqz t0, end_program          # Se for terminador nulo, finaliza o programa
+    li t1, 10                     # Carrega o valor ASCII de nova linha
+    beq t0, t1, end_program       # Se for nova linha, finaliza o programa
+    
+    # Verificar se o caractere é uma letra
+    li t1, 'A'                    # Valor ASCII de 'A'
+    li t2, 'Z'                    # Valor ASCII de 'Z'
+    li t3, 'a'                    # Valor ASCII de 'a'
+    li t4, 'z'                    # Valor ASCII de 'z'
+    
+    # Verificar se é maiúscula
+    blt t0, t1, copy_char         # Se caractere < 'A', copia como está
+    bgt t0, t2, check_lowercase   # Se caractere > 'Z', verifica se é minúscula
+    j process_uppercase           # Caso contrário, processa como maiúscula
+    
+check_lowercase:
+    blt t0, t3, copy_char         # Se caractere < 'a', copia como está
+    bgt t0, t4, copy_char         # Se caractere > 'z', copia como está
+    j process_lowercase           # Caso contrário, processa como minúscula
+    
+process_uppercase:
+    add t0, t0, s0                # Aplica o deslocamento do Cifra de César
+    
+    # Lidar com o retorno para o início do alfabeto (maiúsculas)
+    li t5, 26                     # Tamanho do alfabeto
+    
+upper_loop:
+    bge t0, t1, upper_check_max   # Se caractere >= 'A', verifica máximo
+    add t0, t0, t5                # Adiciona 26 se estiver abaixo de 'A'
+    j upper_loop
+    
+upper_check_max:
+    ble t0, t2, store_char        # Se caractere <= 'Z', armazena
+    sub t0, t0, t5                # Subtrai 26 se estiver acima de 'Z'
+    j upper_check_max
+    
+process_lowercase:
+    add t0, t0, s0                # Aplica o deslocamento do Cifra de César
+    
+    # Lidar com o retorno para o início do alfabeto (minúsculas)
+    li t5, 26                     # Tamanho do alfabeto
+    
+lower_loop:
+    bge t0, t3, lower_check_max   # Se caractere >= 'a', verifica máximo
+    add t0, t0, t5                # Adiciona 26 se estiver abaixo de 'a'
+    j lower_loop
+    
+lower_check_max:
+    ble t0, t4, store_char        # Se caractere <= 'z', armazena
+    sub t0, t0, t5                # Subtrai 26 se estiver acima de 'z'
+    j lower_check_max
+    
+copy_char:
+    j store_char                  # Copia o caractere como está
+    
+store_char:
+    sb t0, (s2)                   # Armazena o caractere processado no buffer de saída
+    
+    # Avançar para o próximo caractere
+    addi s1, s1, 1                # Incrementa o ponteiro de entrada
+    addi s2, s2, 1                # Incrementa o ponteiro de saída
+    j process_loop                # Repete o loop de processamento
+    
+end_program:
+    # Adicionar terminador nulo à string de saída
+    sb zero, (s2)                 # Armazena o terminador nulo no buffer de saída
+    
+    # Imprimir o resultado
+    li a7, 4                      # Carrega o número de syscall para imprimir string
+    la a0, output_text            # Carrega o endereço do buffer de saída
+    ecall                         # Faz a chamada do sistema
+    
+    # Imprimir caractere de nova linha
+    li a7, 11                     # Carrega o número de syscall para imprimir caractere
+    li a0, 10                     # Valor ASCII de nova linha
+    ecall                         # Faz a chamada do sistema
+    
+    # Finalizar programa
+    li a7, 10                     # Carrega o número de syscall para sair
+    ecall                         # Faz a chamada do sistema

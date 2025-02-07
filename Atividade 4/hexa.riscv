@@ -1,0 +1,71 @@
+.data
+buffer: .space 33  # Espaço para armazenar a string de entrada (32 bytes + 1 para null)
+prompt: .asciz ""  
+newline: .asciz "\n"  
+hex_chars: .asciz "0123456789abcdef"  # Mapeamento dos caracteres hexadecimais
+
+.text
+.globl main
+
+main:
+    # Exibe o prompt
+    li a7, 4          # Código de syscall para imprimir string
+    la a0, prompt     # Carrega o endereço da mensagem de prompt
+    ecall             # Chama a syscall para exibir a mensagem
+
+    # Lê a string do usuário (máximo 32 bytes)
+    li a7, 8          # Código de syscall para leitura de string
+    la a0, buffer     # Carrega o endereço do buffer
+    li a1, 33         # Define o tamanho máximo da entrada (32 + 1 para null)
+    ecall             # Chama a syscall para ler a entrada do usuário
+
+    # Garantir que a string não ultrapasse 32 caracteres e remover nova linha
+    la a1, buffer     # a1 = endereço do buffer
+    li a2, 32         # Contador de caracteres restantes
+
+check_end:
+    lb a3, 0(a1)      # Carrega um byte (caractere ASCII) da entrada
+    beqz a3, process  # Se for nulo (fim da string), inicia processamento
+    li a4, 10         # Código ASCII para '\n' (nova linha)
+    beq a3, a4, set_null # Se encontrar '\n', substitui por NULL
+    addi a1, a1, 1    # Avança para o próximo caractere
+    addi a2, a2, -1   # Decrementa o contador de caracteres
+    bnez a2, check_end # Continua verificando se ainda há caracteres
+    j process         # Pula para o processamento
+
+set_null:
+    sb zero, 0(a1)    # Substitui '\n' por NULL (terminador de string)
+
+process:
+    la a1, buffer     # Reinicia a1 no começo do buffer para processamento
+
+loop:
+    lb a3, 0(a1)      # Carrega um byte (caractere ASCII) da string
+    beqz a3, done     # Se for nulo (fim da string), termina o loop
+
+    # Converte e imprime em hexadecimal
+    srli a4, a3, 4    # Obtém o nibble mais significativo (4 bits superiores)
+    la a5, hex_chars  # Carrega a tabela de caracteres hexadecimais
+    add a4, a4, a5    # Calcula o endereço do caractere correspondente na tabela
+    lbu a0, 0(a4)     # Carrega o caractere ASCII correspondente
+    li a7, 11         # Código de syscall para imprimir um caractere
+    ecall             # Imprime o primeiro dígito hexadecimal
+
+    andi a4, a3, 0xF  # Obtém o nibble menos significativo (4 bits inferiores)
+    add a4, a4, a5    # Calcula o endereço do caractere correspondente na tabela
+    lbu a0, 0(a4)     # Carrega o caractere ASCII correspondente
+    li a7, 11         # Código de syscall para imprimir um caractere
+    ecall             # Imprime o segundo dígito hexadecimal
+
+    addi a1, a1, 1    # Avança para o próximo caractere da string
+    j loop            # Continua o loop para processar o próximo caractere
+
+done:
+    # Imprime uma nova linha para formatar a saída
+    li a7, 4          # Código de syscall para imprimir string
+    la a0, newline    # Carrega o endereço da string de nova linha
+    ecall             # Chama a syscall para imprimir a nova linha
+
+    # Encerrar programa
+    li a7, 10         # Código de syscall para encerrar o programa
+    ecall             # Chama a syscall para finalizar a execução
