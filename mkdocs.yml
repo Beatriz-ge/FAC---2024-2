@@ -1,0 +1,26 @@
+site_name: FAC 
+repo_name: "FAC---2024-2"
+repo_url: "https://github.com/Beatriz-ge/FAC---2024-2"
+
+theme:
+  name: material
+  language: "pt"
+  features: 
+    - navigation.tabs
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      primary: indigo    
+      accent: deep-orange  
+      toggle:
+        icon: material/brightness-7
+        name: alterar para modo dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo    
+      accent: deep-orange
+      toggle: 
+        icon: material/brightness-4
+        name: alterar para modo light
+
+nav: 
+  - Início: index.md
